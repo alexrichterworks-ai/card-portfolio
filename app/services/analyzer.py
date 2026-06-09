@@ -55,13 +55,13 @@ def analyze_transactions(user_id: int) -> dict:
         if tx.type in ("sold", "traded_away"):
             outcome_now = "successful" if (now and now < tx_price) else ("unsuccessful" if now else "pending")
             outcome_30d = "successful" if (future_30d and future_30d < tx_price) else ("unsuccessful" if future_30d else "pending")
-            pct_now = round(((tx_price - now) / tx_price) * 100, 1) if now else None
-            pct_30d = round(((tx_price - future_30d) / tx_price) * 100, 1) if future_30d else None
+            pct_now = round(((tx_price - now) / tx_price) * 100, 1) if (now and tx_price) else None
+            pct_30d = round(((tx_price - future_30d) / tx_price) * 100, 1) if (future_30d and tx_price) else None
         else:  # traded_for — card received should go up
             outcome_now = "successful" if (now and now > tx_price) else ("unsuccessful" if now else "pending")
             outcome_30d = "successful" if (future_30d and future_30d > tx_price) else ("unsuccessful" if future_30d else "pending")
-            pct_now = round(((now - tx_price) / tx_price) * 100, 1) if now else None
-            pct_30d = round(((future_30d - tx_price) / tx_price) * 100, 1) if future_30d else None
+            pct_now = round(((now - tx_price) / tx_price) * 100, 1) if (now and tx_price) else None
+            pct_30d = round(((future_30d - tx_price) / tx_price) * 100, 1) if (future_30d and tx_price) else None
 
         final_outcome = outcome_30d if outcome_30d != "pending" else outcome_now
         totals[final_outcome] += 1

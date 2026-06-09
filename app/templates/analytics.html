@@ -88,25 +88,68 @@
 {% if trend %}
 <script>
 const data = {{ trend | tojson }};
-new Chart(document.getElementById("portfolio-chart"), {
+const currentValue = {{ current_value }};
+const values = data.map(d => d.value);
+const first = values[0];
+const gain = first ? currentValue - first : 0;
+const gainPct = first ? ((gain / first) * 100).toFixed(1) : 0;
+const lineColor = gain >= 0 ? "#22c55e" : "#ef4444";
+const fillColor = gain >= 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)";
+
+// Show 30-day summary above chart
+const summary = document.createElement("div");
+summary.style = "display:flex; gap:2rem; margin-bottom:1rem;";
+summary.innerHTML = `
+  <div><span style="color:#64748b; font-size:0.8rem;">30-DAY CHANGE</span><br>
+    <span style="font-size:1.3rem; font-weight:700; color:${lineColor};">
+      ${gain >= 0 ? "+" : ""}$${gain.toFixed(2)} (${gain >= 0 ? "+" : ""}${gainPct}%)
+    </span>
+  </div>
+  <div><span style="color:#64748b; font-size:0.8rem;">CURRENT VALUE</span><br>
+    <span style="font-size:1.3rem; font-weight:700; color:#f8fafc;">$${currentValue.toFixed(2)}</span>
+  </div>`;
+document.getElementById("portfolio-chart").before(summary);
+
+const ctx = document.getElementById("portfolio-chart");
+new Chart(ctx, {
   type: "line",
   data: {
     labels: data.map(d => d.date),
     datasets: [{
-      label: "Portfolio Value ($)",
-      data: data.map(d => d.value),
-      borderColor: "#2563eb",
-      backgroundColor: "rgba(37,99,235,0.1)",
+      label: "Portfolio Value",
+      data: values,
+      borderColor: lineColor,
+      backgroundColor: fillColor,
       fill: true,
       tension: 0.3,
-      pointRadius: 3,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      borderWidth: 2,
     }]
   },
   options: {
-    plugins: { legend: { labels: { color: "#94a3b8" } } },
+    responsive: true,
+    interaction: { intersect: false, mode: "index" },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1e293b",
+        borderColor: "#334155",
+        borderWidth: 1,
+        titleColor: "#94a3b8",
+        bodyColor: "#f8fafc",
+        callbacks: { label: ctx => ` $${ctx.parsed.y.toFixed(2)}` }
+      }
+    },
     scales: {
-      x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-      y: { ticks: { color: "#64748b", callback: v => "$"+v }, grid: { color: "#1e293b" } }
+      x: {
+        ticks: { color: "#64748b", maxTicksLimit: 8 },
+        grid: { color: "#1e293b" }
+      },
+      y: {
+        ticks: { color: "#64748b", callback: v => "$" + v.toFixed(0) },
+        grid: { color: "#1e293b" }
+      }
     }
   }
 });
