@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Card Portfolio{% endblock %}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav {
+      background: #1e293b;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 56px;
+      border-bottom: 1px solid #334155;
+    }
+    nav .brand { font-weight: 700; font-size: 1.1rem; color: #f8fafc; }
+    nav a { color: #94a3b8; font-size: 0.9rem; }
+    nav a:hover { color: #f8fafc; text-decoration: none; }
+    nav .spacer { flex: 1; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .flash { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .flash.error { background: #450a0a; border: 1px solid #991b1b; color: #fca5a5; }
+    .flash.success { background: #052e16; border: 1px solid #166534; color: #86efac; }
+
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1.5rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 0.6rem 1rem; font-size: 0.75rem; text-transform: uppercase;
+         letter-spacing: 0.05em; color: #64748b; border-bottom: 1px solid #334155; }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1e3a5f22; }
+
+    .btn { display: inline-block; padding: 0.5rem 1.1rem; border-radius: 6px; border: none;
+           cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-ghost { background: transparent; border: 1px solid #475569; color: #94a3b8; }
+    .btn-ghost:hover { border-color: #60a5fa; color: #60a5fa; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-green { background: #052e16; color: #86efac; border: 1px solid #166534; }
+    .badge-red { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+    .badge-yellow { background: #422006; color: #fcd34d; border: 1px solid #92400e; }
+
+    .stat { text-align: center; }
+    .stat .value { font-size: 2rem; font-weight: 700; color: #f8fafc; }
+    .stat .label { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+
+    form input, form select, form textarea {
+      background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+      border-radius: 6px; padding: 0.5rem 0.75rem; width: 100%; font-size: 0.9rem;
+    }
+    form input:focus, form select:focus { outline: none; border-color: #2563eb; }
+    form label { display: block; margin-bottom: 0.3rem; font-size: 0.8rem; color: #94a3b8; }
+    .form-group { margin-bottom: 1rem; }
+    .form-row { display: grid; gap: 1rem; }
+    .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; color: #f8fafc; margin-bottom: 1.5rem; }
+    h2 { font-size: 1.15rem; font-weight: 600; color: #f8fafc; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <nav>
+    <span class="brand">🃏 Card Portfolio</span>
+    <a href="{{ url_for('collection.view') }}">Collection</a>
+    <a href="{{ url_for('transactions.view') }}">Transactions</a>
+    <a href="{{ url_for('analytics.view') }}">Analytics</a>
+    <span class="spacer"></span>
+    <span style="color:#64748b; font-size:0.85rem;">{{ current_user.email }}</span>
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+  </nav>
+  {% endif %}
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

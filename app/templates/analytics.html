@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+
+<h1>Analytics</h1>
+
+<!-- Portfolio value chart -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <h2>Portfolio value over time</h2>
+  {% if trend %}
+  <canvas id="portfolio-chart" height="80"></canvas>
+  {% else %}
+  <p style="color:#475569; padding:1rem 0;">No portfolio snapshots yet — prices are fetched daily at midnight.</p>
+  {% endif %}
+</div>
+
+<!-- Win rate summary -->
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem;">
+  <div class="card stat">
+    <div class="value" style="color:#86efac;">{{ analysis.totals.successful }}</div>
+    <div class="label">Successful exits</div>
+  </div>
+  <div class="card stat">
+    <div class="value" style="color:#fca5a5;">{{ analysis.totals.unsuccessful }}</div>
+    <div class="label">Unsuccessful exits</div>
+  </div>
+  <div class="card stat">
+    <div class="value" style="color:#60a5fa;">
+      {% if analysis.win_rate is not none %}{{ analysis.win_rate }}%{% else %}—{% endif %}
+    </div>
+    <div class="label">Win rate</div>
+  </div>
+</div>
+
+<!-- Advice -->
+{% if advice %}
+<div style="margin-bottom:1.5rem;">
+  <h2>Recommendations</h2>
+  {% for tip in advice %}
+  <div class="flash {{ 'success' if tip.type == 'success' else 'error' }}" style="margin-bottom:0.5rem;">
+    {{ tip.message }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Transaction breakdown -->
+{% if analysis.insights %}
+<div class="card">
+  <h2>Transaction outcomes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Card</th><th>Type</th><th>Sold/Trade Price</th>
+        <th>Price now</th><th>Price 30d after</th><th>Outcome (now)</th><th>Outcome (30d)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in analysis.insights %}
+      <tr>
+        <td style="color:#64748b;">{{ i.date }}</td>
+        <td>{{ i.card_name }}</td>
+        <td>{{ i.type.replace('_',' ').title() }}</td>
+        <td>${{ "%.2f"|format(i.tx_price) }}</td>
+        <td>{% if i.current_price %}${{ "%.2f"|format(i.current_price) }}{% else %}<span style="color:#475569;">—</span>{% endif %}</td>
+        <td>{% if i.price_30d_after %}${{ "%.2f"|format(i.price_30d_after) }}{% else %}<span style="color:#475569;">—</span>{% endif %}</td>
+        <td>
+          {% if i.outcome_now == 'successful' %}<span class="badge badge-green">Win</span>
+          {% elif i.outcome_now == 'unsuccessful' %}<span class="badge badge-red">Loss</span>
+          {% else %}<span class="badge badge-yellow">Pending</span>{% endif %}
+        </td>
+        <td>
+          {% if i.outcome_30d == 'successful' %}<span class="badge badge-green">Win</span>
+          {% elif i.outcome_30d == 'unsuccessful' %}<span class="badge badge-red">Loss</span>
+          {% else %}<span class="badge badge-yellow">Pending</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:3rem; color:#475569;">
+  Log some sells or trades to see outcome analysis.
+</div>
+{% endif %}
+
+{% if trend %}
+<script>
+const data = {{ trend | tojson }};
+new Chart(document.getElementById("portfolio-chart"), {
+  type: "line",
+  data: {
+    labels: data.map(d => d.date),
+    datasets: [{
+      label: "Portfolio Value ($)",
+      data: data.map(d => d.value),
+      borderColor: "#2563eb",
+      backgroundColor: "rgba(37,99,235,0.1)",
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3,
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color: "#94a3b8" } } },
+    scales: {
+      x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+      y: { ticks: { color: "#64748b", callback: v => "$"+v }, grid: { color: "#1e293b" } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

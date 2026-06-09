@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}My Collection{% endblock %}
+{% block content %}
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+  <h1 style="margin:0;">My Collection</h1>
+  <div style="font-size:1.1rem; color:#94a3b8;">
+    Total value: <strong style="color:#60a5fa;">${{ "%.2f"|format(total_value) }}</strong>
+  </div>
+</div>
+
+<!-- Add card form -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <h2>Add a card</h2>
+  <div style="display:flex; gap:0.75rem; margin-bottom:1rem;">
+    <input id="search-name" type="text" placeholder="Card name..." style="flex:1;">
+    <select id="search-game" style="width:160px;">
+      <option value="pokemon">Pokemon</option>
+      <option value="magic">Magic</option>
+      <option value="yugioh">Yu-Gi-Oh</option>
+      <option value="lorcana">Lorcana</option>
+    </select>
+    <button onclick="searchCards()" class="btn btn-ghost">Search</button>
+  </div>
+
+  <div id="search-error" style="display:none; color:#fca5a5; font-size:0.875rem; margin-bottom:0.75rem;"></div>
+  <div id="search-results" style="display:none; margin-bottom:1rem;">
+    <div id="results-count" style="font-size:0.8rem; color:#64748b; margin-bottom:0.5rem;"></div>
+    <div style="max-height:400px; overflow-y:auto; border:1px solid #334155; border-radius:6px;">
+      <table>
+        <thead style="position:sticky; top:0; background:#1e293b; z-index:1;">
+          <tr><th>Name</th><th>Set</th><th>Number</th><th>Market Price</th><th></th></tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <form id="add-form" method="POST" action="{{ url_for('collection.add') }}" style="display:none;">
+    <input type="hidden" name="card_id" id="f-card-id">
+    <input type="hidden" name="name" id="f-name">
+    <input type="hidden" name="set_name" id="f-set">
+    <input type="hidden" name="game" id="f-game">
+    <div class="form-row cols-3">
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" name="quantity" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Condition</label>
+        <select name="condition">
+          <option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Purchase price ($)</label>
+        <input type="number" name="purchase_price" step="0.01" min="0" placeholder="0.00">
+      </div>
+    </div>
+    <div id="selected-card" style="margin-bottom:1rem; color:#60a5fa; font-size:0.9rem;"></div>
+    <button type="submit" class="btn btn-primary">Add to collection</button>
+    <button type="button" onclick="clearSelection()" class="btn btn-ghost" style="margin-left:0.5rem;">Cancel</button>
+  </form>
+</div>
+
+<!-- Collection table -->
+{% if collection %}
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Card</th><th>Set</th><th>Game</th><th>Qty</th><th>Cond.</th>
+        <th>Purchase Price</th><th>Current Price</th><th>Value</th><th>Gain/Loss</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in collection %}
+      <tr>
+        <td><strong>{{ row.item.card.name }}</strong></td>
+        <td style="color:#64748b;">{{ row.item.card.set_name or '—' }}</td>
+        <td style="color:#64748b;">{{ row.item.card.game|upper }}</td>
+        <td>{{ row.item.quantity }}</td>
+        <td>{{ row.item.condition }}</td>
+        <td>${{ "%.2f"|format(row.item.purchase_price or 0) }}</td>
+        <td>
+          {% if row.current_price %}${{ "%.2f"|format(row.current_price) }}{% else %}<span style="color:#475569;">—</span>{% endif %}
+        </td>
+        <td>${{ "%.2f"|format(row.current_value) }}</td>
+        <td>
+          {% if row.gain_loss > 0 %}
+            <span class="badge badge-green">+${{ "%.2f"|format(row.gain_loss) }}</span>
+          {% elif row.gain_loss < 0 %}
+            <span class="badge badge-red">-${{ "%.2f"|format(row.gain_loss|abs) }}</span>
+          {% else %}
+            <span style="color:#475569;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('collection.remove', item_id=row.item.id) }}"
+                onsubmit="return confirm('Remove {{ row.item.card.name }}?')">
+            <button type="submit" class="btn btn-danger" style="padding:0.3rem 0.7rem; font-size:0.8rem;">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:3rem; color:#475569;">
+  Your collection is empty. Search for a card above to get started.
+</div>
+{% endif %}
+
+<script>
+async function searchCards() {
+  const name = document.getElementById("search-name").value.trim();
+  const game = document.getElementById("search-game").value;
+  const errorEl = document.getElementById("search-error");
+  const resultsEl = document.getElementById("search-results");
+  if (!name) return;
+
+  errorEl.style.display = "none";
+  resultsEl.style.display = "none";
+
+  try {
+    const res = await fetch(`/collection/search?name=${encodeURIComponent(name)}&game=${game}`);
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      errorEl.textContent = data.error || "Search failed. Check your API key.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    if (data.length === 0) {
+      errorEl.textContent = `No cards found for "${name}" in ${game}. Try a different name or game.`;
+      errorEl.style.display = "block";
+      return;
+    }
+
+    document.getElementById("results-count").textContent = `${data.length} result(s) found`;
+    const tbody = document.getElementById("results-body");
+    tbody.innerHTML = data.map(c => `
+      <tr style="cursor:pointer;" onclick='selectCard(${JSON.stringify(c)}, "${game}")'>
+        <td>${c.name}</td>
+        <td style="color:#64748b;">${c.set_name || '—'}</td>
+        <td style="color:#64748b;">${c.number || '—'}</td>
+        <td>${c.market_price ? '$'+parseFloat(c.market_price).toFixed(2) : '—'}</td>
+        <td><span class="btn btn-ghost" style="padding:0.2rem 0.6rem; font-size:0.8rem;">Select</span></td>
+      </tr>`).join("");
+    resultsEl.style.display = "block";
+  } catch (e) {
+    errorEl.textContent = "Search request failed. Make sure you are logged in and the server is running.";
+    errorEl.style.display = "block";
+  }
+}
+
+function selectCard(card, game) {
+  document.getElementById("f-card-id").value = card.id;
+  document.getElementById("f-name").value = card.name;
+  document.getElementById("f-set").value = card.set_name || "";
+  document.getElementById("f-game").value = game;
+  document.getElementById("selected-card").textContent = `Selected: ${card.name} — ${card.set_name || 'Unknown Set'}`;
+  document.getElementById("search-results").style.display = "none";
+  document.getElementById("add-form").style.display = "block";
+}
+
+function clearSelection() {
+  document.getElementById("add-form").style.display = "none";
+  document.getElementById("selected-card").textContent = "";
+}
+</script>
+{% endblock %}

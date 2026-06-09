@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+
+<h1>Transactions</h1>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <h2>Log a transaction</h2>
+  <form method="POST" action="{{ url_for('transactions.log') }}">
+    <div class="form-row cols-3">
+      <div class="form-group">
+        <label>Type</label>
+        <select name="type" id="tx-type" onchange="toggleTradeCard()">
+          <option value="sold">Sold</option>
+          <option value="bought">Bought</option>
+          <option value="traded_away">Traded Away</option>
+          <option value="traded_for">Traded For</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Card (from your collection)</label>
+        <select name="card_id" required>
+          {% for item in collection %}
+          <option value="{{ item.card_id }}">{{ item.card.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="date" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+      </div>
+    </div>
+    <div class="form-row cols-3">
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" name="quantity" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Price ($)</label>
+        <input type="number" name="price" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="form-group" id="trade-card-group" style="display:none;">
+        <label>Card received in trade (ID)</label>
+        <input type="text" name="trade_card_id" placeholder="TCGApi card ID">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <input type="text" name="notes" placeholder="Optional notes...">
+    </div>
+    <button type="submit" class="btn btn-primary">Log transaction</button>
+  </form>
+</div>
+
+{% if transactions %}
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Type</th><th>Card</th><th>Qty</th><th>Price</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      {% for tx in transactions %}
+      <tr>
+        <td style="color:#64748b;">{{ tx.date.strftime('%Y-%m-%d') }}</td>
+        <td>
+          {% if tx.type == 'sold' %}<span class="badge badge-green">Sold</span>
+          {% elif tx.type == 'bought' %}<span class="badge badge-yellow">Bought</span>
+          {% elif tx.type == 'traded_away' %}<span class="badge badge-red">Traded Away</span>
+          {% else %}<span class="badge badge-green">Traded For</span>{% endif %}
+        </td>
+        <td>{{ tx.card.name if tx.card else tx.card_id }}</td>
+        <td>{{ tx.quantity }}</td>
+        <td>${{ "%.2f"|format(tx.price or 0) }}</td>
+        <td style="color:#64748b;">{{ tx.notes or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:3rem; color:#475569;">
+  No transactions logged yet.
+</div>
+{% endif %}
+
+<script>
+function toggleTradeCard() {
+  const type = document.getElementById("tx-type").value;
+  document.getElementById("trade-card-group").style.display =
+    (type === "traded_away" || type === "traded_for") ? "block" : "none";
+}
+</script>
+{% endblock %}
