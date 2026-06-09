@@ -6,6 +6,19 @@ Built with Flask, SQLAlchemy, and the TCGApi — supporting 89+ games including 
 
 ---
 
+## Screenshots
+
+### Collection
+![Collection](screenshot-collection.png)
+
+### Transactions
+![Transactions](screenshot-transactions.png)
+
+### Analytics
+![Analytics](screenshot-analytics.png)
+
+---
+
 ## Features
 
 - **Multi-user authentication** — secure registration and login with bcrypt password hashing
